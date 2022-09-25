@@ -295,9 +295,10 @@ object Eval:
     }
 
   def currentClasspath: Seq[Path] =
-    val cl = ClassLoader.getSystemClassLoader()
-    val urls = cl.asInstanceOf[URLClassLoader].getURLs().toList
-    urls.map(_.getFile).map(Paths.get(_))
+    val urls = sys.props.get("java.class.path")
+      .map(_.split(":"))
+      .getOrElse(Array.empty[String])
+    urls.map(Paths.get(_))
 
   def bytes(s: String): Array[Byte] = s.getBytes("UTF-8")
 
