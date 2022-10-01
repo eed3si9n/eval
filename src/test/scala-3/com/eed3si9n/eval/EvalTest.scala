@@ -171,6 +171,21 @@ object EvalTest extends BasicTestSuite:
     }
   }
 
+  test("lazy val test") {
+    IO.withTemporaryDirectory { tempDir =>
+      val defs = (lazyValTestContent, 1 to 3) :: Nil
+      val res =
+        eval(tempDir.toPath).evalDefinitions(
+          defs,
+          new EvalImports(Nil),
+          "<defs>",
+          "scala.Int" :: Nil
+        )
+      assert(res.valNames.toSet == Set("x"))
+      assert(res.values(getClass.getClassLoader) == Seq(7))
+    }
+  }
+
   private[this] def hasErrors(line: Int, src: String) = {
     val errors = reporter.allErrors
     assert(errors.nonEmpty)
@@ -200,6 +215,10 @@ val p = {
   y
 
 val a: String = 9
+"""
+
+  lazy val lazyValTestContent = """
+lazy val x: Int = 7
 """
 
   lazy val IntType = "Int"
