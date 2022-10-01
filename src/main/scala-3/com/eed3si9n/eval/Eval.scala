@@ -374,7 +374,11 @@ object Eval:
       tree match
         case tpd.ValDef(name, tpt, _)
             if isTopLevelModule(tree.symbol.owner) && isAcceptableType(tpt.tpe) =>
-          vals ::= name.mangledString
+          val str = name.mangledString
+          vals ::= (
+            if str.contains("$lzy") then str.take(str.indexOf("$"))
+            else str
+          )
         case t: tpd.Template   => this((), t.body)
         case t: tpd.PackageDef => this((), t.stats)
         case t: tpd.TypeDef    => this((), t.rhs)
