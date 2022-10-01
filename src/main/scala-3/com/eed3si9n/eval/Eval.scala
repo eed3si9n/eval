@@ -309,7 +309,7 @@ object Eval:
   class EvalSourceFile(name: String, startLine: Int, contents: String)
       extends SourceFile(
         new VirtualFile(name, contents.getBytes(StandardCharsets.UTF_8)),
-        scala.io.Codec.UTF8
+        contents.toArray[Char],
       ):
     override def lineToOffset(line: Int): Int = super.lineToOffset((line + startLine) max 0)
     override def offsetToLine(offset: Int): Int = super.offsetToLine(offset) - startLine
