@@ -219,6 +219,7 @@ val a: String = 9
 
   lazy val lazyValTestContent = """
 lazy val x: Int = 7
+lazy val z: Double = 3.0
 """
 
   lazy val IntType = "Int"

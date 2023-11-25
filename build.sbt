@@ -1,6 +1,6 @@
 import Dependencies._
 
-ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / version := "0.3.0-SNAPSHOT"
 
 lazy val root = (project in file("."))
   .settings(nocomma {
