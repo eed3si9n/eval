@@ -65,13 +65,13 @@ class Eval(
   end EvalDriver
 
   def eval(expression: String, tpeName: Option[String]): EvalResult =
-    eval(expression, noImports, tpeName, "<setting>", Eval.DefaultStartLine)
+    eval(expression, noImports, tpeName, "setting", Eval.DefaultStartLine)
 
   def evalInfer(expression: String): EvalResult =
-    eval(expression, noImports, None, "<setting>", Eval.DefaultStartLine)
+    eval(expression, noImports, None, "setting", Eval.DefaultStartLine)
 
   def evalInfer(expression: String, imports: EvalImports): EvalResult =
-    eval(expression, imports, None, "<setting>", Eval.DefaultStartLine)
+    eval(expression, imports, None, "setting", Eval.DefaultStartLine)
 
   def eval(
       expression: String,
