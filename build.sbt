@@ -1,22 +1,32 @@
 import Dependencies._
 
+lazy val scalaVersions = Seq(
+  "3.6.4",
+  "3.5.2",
+  "3.4.3",
+  "3.3.5",
+)
 ThisBuild / version := "0.3.0-SNAPSHOT"
+ThisBuild / scalaVersion := scalaVersions.head
 
 lazy val root = (project in file("."))
   .settings(nocomma {
     name := "Eval"
-    libraryDependencies ++= Seq(
-      scalaCompiler,
-      verify % Test,
-      ioProj % Test,
-    )
+    libraryDependencies ++= {
+      val sv = scalaVersion.value
+      Seq(
+        "org.scala-lang" %% "scala3-compiler" % sv,
+        verify % Test,
+        ioProj % Test,
+      )
+    }
     testFrameworks += new TestFramework("verify.runner.Framework")
     crossVersion := CrossVersion.full
     Test / fork := true
+    crossScalaVersions := scalaVersions
   })
 
 ThisBuild / semanticdbEnabled := true
-ThisBuild / scalaVersion := scala3
 ThisBuild / organization := "com.eed3si9n.eval"
 ThisBuild / organizationName := "eed3si9n"
 ThisBuild / organizationHomepage := Some(url("http://eed3si9n.com/"))

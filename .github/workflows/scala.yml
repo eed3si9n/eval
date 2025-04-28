@@ -41,4 +41,4 @@ jobs:
     - uses: sbt/setup-sbt@v1
     - name: Run tests
       shell: bash
-      run: sbt -v test
+      run: sbt -v +test
