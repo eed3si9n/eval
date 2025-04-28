@@ -186,7 +186,7 @@ object EvalTest extends BasicTestSuite:
     }
   }
 
-  private[this] def hasErrors(line: Int, src: String) = {
+  private def hasErrors(line: Int, src: String) = {
     val errors = reporter.allErrors
     assert(errors.nonEmpty)
     assert(errors.head.pos.line == line - 1)
@@ -226,5 +226,5 @@ lazy val z: Double = 3.0
   lazy val LongType = "Long"
   lazy val BooleanType = "Boolean"
   lazy val StringType = "String"
-  private[this] def value(r: EvalResult) = r.getValue(getClass.getClassLoader)
+  private def value(r: EvalResult) = r.getValue(getClass.getClassLoader)
 end EvalTest
