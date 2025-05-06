@@ -18,7 +18,8 @@ import java.net.URLClassLoader
 import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Path, Paths, StandardOpenOption }
 import java.security.MessageDigest
-import scala.collection.JavaConverters.*
+import scala.collection.immutable.ArraySeq.unsafeWrapArray
+import scala.jdk.CollectionConverters.*
 import scala.quoted.*
 
 /**
@@ -247,13 +248,13 @@ class Eval(
   private def getGeneratedFiles(moduleName: String): Seq[Path] =
     backingDir match
       case Some(dir) =>
-        asScala(
-          Files
-            .list(dir)
-            .filter(!Files.isDirectory(_))
-            .filter(_.getFileName.toString.contains(moduleName))
-            .iterator
-        ).toList
+        Files
+          .list(dir)
+          .filter(!Files.isDirectory(_))
+          .filter(_.getFileName.toString.contains(moduleName))
+          .iterator
+          .asScala
+          .toList
       case None => Nil
 
   private def makeModuleName(hash: String): String = "$Wrap" + hash.take(10)
@@ -302,7 +303,7 @@ object Eval:
     val urls = sys.props.get("java.class.path")
       .map(_.split(":"))
       .getOrElse(Array.empty[String])
-    urls.map(Paths.get(_))
+    unsafeWrapArray(urls).map(Paths.get(_))
 
   def bytes(s: String): Array[Byte] = s.getBytes("UTF-8")
 
