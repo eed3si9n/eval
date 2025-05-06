@@ -5,6 +5,7 @@ import dotty.tools.dotc.ast.{ tpd, untpd }
 import dotty.tools.dotc.CompilationUnit
 import dotty.tools.dotc.config.ScalaSettings
 import dotty.tools.dotc.core.Contexts.{ atPhase, Context }
+import dotty.tools.dotc.core.Decorators.toTermName
 import dotty.tools.dotc.core.{ Flags, Names, Phases, Symbols, Types }
 import dotty.tools.dotc.Driver
 import dotty.tools.dotc.parsing.Parsers.Parser
@@ -64,14 +65,16 @@ class Eval(
     val compiler = newCompiler(using compileCtx)
   end EvalDriver
 
+  private inline def srcName = "<setting>"
+
   def eval(expression: String, tpeName: Option[String]): EvalResult =
-    eval(expression, noImports, tpeName, "setting", Eval.DefaultStartLine)
+    eval(expression, noImports, tpeName, srcName, Eval.DefaultStartLine)
 
   def evalInfer(expression: String): EvalResult =
-    eval(expression, noImports, None, "setting", Eval.DefaultStartLine)
+    eval(expression, noImports, None, srcName, Eval.DefaultStartLine)
 
   def evalInfer(expression: String, imports: EvalImports): EvalResult =
-    eval(expression, imports, None, "setting", Eval.DefaultStartLine)
+    eval(expression, imports, None, srcName, Eval.DefaultStartLine)
 
   def eval(
       expression: String,
@@ -220,6 +223,7 @@ class Eval(
     given rootCtx: Context = driver.compileCtx
     val run = driver.compiler.newRun
     val source = ev.makeSource(moduleName)
+    rootCtx.base.files.update(source.name.toTermName, source.file)
     run.compileSources(source :: Nil)
     checkError("an error in expression")
     val unit = run.units.head
