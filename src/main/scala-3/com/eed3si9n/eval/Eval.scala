@@ -5,6 +5,7 @@ import dotty.tools.dotc.ast.{ tpd, untpd }
 import dotty.tools.dotc.CompilationUnit
 import dotty.tools.dotc.config.ScalaSettings
 import dotty.tools.dotc.core.Contexts.{ atPhase, Context }
+import dotty.tools.dotc.core.Decorators.toTermName
 import dotty.tools.dotc.core.{ Flags, Names, Phases, Symbols, Types }
 import dotty.tools.dotc.Driver
 import dotty.tools.dotc.parsing.Parsers.Parser
@@ -17,7 +18,8 @@ import java.net.URLClassLoader
 import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Path, Paths, StandardOpenOption }
 import java.security.MessageDigest
-import scala.collection.JavaConverters.*
+import scala.collection.immutable.ArraySeq.unsafeWrapArray
+import scala.jdk.CollectionConverters.*
 import scala.quoted.*
 
 /**
@@ -64,14 +66,16 @@ class Eval(
     val compiler = newCompiler(using compileCtx)
   end EvalDriver
 
+  private inline def srcName = "<setting>"
+
   def eval(expression: String, tpeName: Option[String]): EvalResult =
-    eval(expression, noImports, tpeName, "setting", Eval.DefaultStartLine)
+    eval(expression, noImports, tpeName, srcName, Eval.DefaultStartLine)
 
   def evalInfer(expression: String): EvalResult =
-    eval(expression, noImports, None, "setting", Eval.DefaultStartLine)
+    eval(expression, noImports, None, srcName, Eval.DefaultStartLine)
 
   def evalInfer(expression: String, imports: EvalImports): EvalResult =
-    eval(expression, imports, None, "setting", Eval.DefaultStartLine)
+    eval(expression, imports, None, srcName, Eval.DefaultStartLine)
 
   def eval(
       expression: String,
@@ -220,6 +224,7 @@ class Eval(
     given rootCtx: Context = driver.compileCtx
     val run = driver.compiler.newRun
     val source = ev.makeSource(moduleName)
+    rootCtx.base.files.update(source.name.toTermName, source.file)
     run.compileSources(source :: Nil)
     checkError("an error in expression")
     val unit = run.units.head
@@ -243,13 +248,13 @@ class Eval(
   private def getGeneratedFiles(moduleName: String): Seq[Path] =
     backingDir match
       case Some(dir) =>
-        asScala(
-          Files
-            .list(dir)
-            .filter(!Files.isDirectory(_))
-            .filter(_.getFileName.toString.contains(moduleName))
-            .iterator
-        ).toList
+        Files
+          .list(dir)
+          .filter(!Files.isDirectory(_))
+          .filter(_.getFileName.toString.contains(moduleName))
+          .iterator
+          .asScala
+          .toList
       case None => Nil
 
   private def makeModuleName(hash: String): String = "$Wrap" + hash.take(10)
@@ -298,7 +303,7 @@ object Eval:
     val urls = sys.props.get("java.class.path")
       .map(_.split(":"))
       .getOrElse(Array.empty[String])
-    urls.map(Paths.get(_))
+    unsafeWrapArray(urls).map(Paths.get(_))
 
   def bytes(s: String): Array[Byte] = s.getBytes("UTF-8")
 
