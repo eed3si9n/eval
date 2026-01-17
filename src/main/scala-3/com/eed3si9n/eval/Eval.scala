@@ -8,6 +8,7 @@ import dotty.tools.dotc.core.Contexts.{ atPhase, Context }
 import dotty.tools.dotc.core.Decorators.toTermName
 import dotty.tools.dotc.core.{ Flags, Names, Phases, Symbols, Types }
 import dotty.tools.dotc.Driver
+import dotty.tools.dotc.core.Periods.*
 import dotty.tools.dotc.parsing.Parsers.Parser
 import dotty.tools.dotc.reporting.Reporter
 import dotty.tools.dotc.Run
@@ -57,6 +58,7 @@ class Eval(
       case Some((_, ctx)) => ctx
       case _              => sys.error(s"initialization failed for $options")
     val compileCtx2 = compileCtx1.fresh
+      .setPeriod(Period(2, 1)) // RunId 2 is the actually the first one in the compiler
       .setSetting(
         compileCtx1.settings.outputDir,
         outputDir
@@ -104,7 +106,6 @@ class Eval(
 
       override def extract(run: Run, unit: CompilationUnit)(using ctx: Context): String =
         atPhase(Phases.typerPhase.next):
-          ctx.setUsedBestEffortTasty()
           (new TypeExtractor).getType(unit.tpdTree)
 
       override def read(file: Path): String =
