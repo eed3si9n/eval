@@ -5,7 +5,7 @@ lazy val scalaVersions = Seq(
   // "3.5.2",
   // "3.4.3",
   // "3.3.5",
-  "3.8.0"
+  "3.8.1"
 )
 ThisBuild / version := "0.3.0-SNAPSHOT"
 ThisBuild / scalaVersion := scalaVersions.head
