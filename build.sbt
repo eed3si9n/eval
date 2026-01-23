@@ -7,7 +7,7 @@ lazy val scalaVersions = Seq(
   // "3.3.5",
   "3.8.1"
 )
-ThisBuild / version := "0.3.0-SNAPSHOT"
+ThisBuild / version := "0.3.2-SNAPSHOT"
 ThisBuild / scalaVersion := scalaVersions.head
 
 lazy val root = (project in file("."))
@@ -41,7 +41,7 @@ ThisBuild / description := "Eval evaluates Scala code"
 ThisBuild / licenses := Seq("Apache 2" -> new URL("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 ThisBuild / homepage := Some(url("https://github.com/eed3si9n/eval"))
 ThisBuild / publishTo := {
-  val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
-  else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+  if (version.value.endsWith("-SNAPSHOT")) Some("central-snapshots" at centralSnapshots)
+  else localStaging.value
 }
