@@ -8,12 +8,13 @@ import dotty.tools.dotc.core.Contexts.{ atPhase, Context }
 import dotty.tools.dotc.core.Decorators.toTermName
 import dotty.tools.dotc.core.{ Flags, Names, Phases, Symbols, Types }
 import dotty.tools.dotc.Driver
+import dotty.tools.dotc.core.Periods.*
 import dotty.tools.dotc.parsing.Parsers.Parser
 import dotty.tools.dotc.reporting.Reporter
 import dotty.tools.dotc.Run
 import dotty.tools.dotc.util.SourceFile
 import dotty.tools.io.{ PlainDirectory, Directory, VirtualDirectory, VirtualFile }
-import dotty.tools.repl.AbstractFileClassLoader
+import dotty.tools.io.AbstractFileClassLoader
 import java.net.URLClassLoader
 import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Path, Paths, StandardOpenOption }
@@ -57,6 +58,7 @@ class Eval(
       case Some((_, ctx)) => ctx
       case _              => sys.error(s"initialization failed for $options")
     val compileCtx2 = compileCtx1.fresh
+      .setPeriod(Period(2, 1)) // RunId 2 is the actually the first one in the compiler
       .setSetting(
         compileCtx1.settings.outputDir,
         outputDir
@@ -103,9 +105,8 @@ class Eval(
         EvalSourceFile(srcName, startLine, contents)
 
       override def extract(run: Run, unit: CompilationUnit)(using ctx: Context): String =
-        atPhase(Phases.typerPhase.next) {
+        atPhase(Phases.typerPhase.next):
           (new TypeExtractor).getType(unit.tpdTree)
-        }
 
       override def read(file: Path): String =
         String(Files.readAllBytes(file), StandardCharsets.UTF_8)
@@ -175,7 +176,7 @@ class Eval(
       override def extraHash: String = extraHash0
 
     val inter = evalCommon[Seq[String]](definitions.map(_._1), imports, tpeName = Some(""), ev)
-    EvalDefinitions(inter.loader, inter.generated, inter.enclosingModule, inter.extra.reverse)
+    EvalDefinitions(inter.loader, inter.generated, inter.enclosingModule, inter.extra.reverse.distinct)
 
   end evalDefinitions
 

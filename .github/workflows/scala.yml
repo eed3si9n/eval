@@ -12,19 +12,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            java: 8
-            distribution: zulu
-          - os: ubuntu-latest
             java: 17
             distribution: temurin
           - os: ubuntu-latest
             java: 21
             distribution: temurin
           - os: macos-latest
-            java: 11
+            java: 17
             distribution: temurin
           - os: windows-latest
-            java: 8
+            java: 17
             distribution: zulu
     runs-on: ${{ matrix.os }}
     env:
