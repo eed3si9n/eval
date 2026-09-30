@@ -5,9 +5,9 @@ lazy val scalaVersions = Seq(
   // "3.5.2",
   // "3.4.3",
   // "3.3.5",
-  "3.8.1"
+  "3.9.0"
 )
-ThisBuild / version := "0.3.2-SNAPSHOT"
+ThisBuild / version := "0.4.0-SNAPSHOT"
 ThisBuild / scalaVersion := scalaVersions.head
 
 lazy val root = (project in file("."))

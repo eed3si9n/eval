@@ -94,8 +94,8 @@ class Eval(
         val header =
           imports.strings.mkString("\n") +
             s"""
-               |object $moduleName {
-               |  def $WrapValName${returnType} = {""".stripMargin
+               |object `$moduleName` {
+               |  def `$WrapValName`${returnType} = {""".stripMargin
         val contents = s"""$header
           |$expression
           |  }
@@ -148,7 +148,7 @@ class Eval(
         val header =
           imports.strings.mkString("\n") +
             s"""
-               |object $moduleName {""".stripMargin
+               |object `$moduleName` {""".stripMargin
         val contents =
           s"""$header
           |${definitions.map(_._1).mkString("\n")}
@@ -258,7 +258,7 @@ class Eval(
           .toList
       case None => Nil
 
-  private def makeModuleName(hash: String): String = "$Wrap" + hash.take(10)
+  private def makeModuleName(hash: String): String = "+_Wrap" + hash.take(10)
 
   private def checkError(label: String)(using ctx: Context): Unit =
     if ctx.reporter.hasErrors then
@@ -309,7 +309,7 @@ object Eval:
   def bytes(s: String): Array[Byte] = s.getBytes("UTF-8")
 
   /** The name of the synthetic val in the synthetic module that an expression is assigned to. */
-  private[eval] final val WrapValName = "$sbtdef"
+  private[eval] final val WrapValName = "+_sbtdef"
 
   // used to map the position offset
   class EvalSourceFile(name: String, startLine: Int, contents: String)
@@ -399,7 +399,8 @@ object Eval:
    */
   def getValue[A](objectName: String, loader: ClassLoader): A =
     val module = getModule(objectName, loader)
-    val accessor = module.getClass.getMethod(WrapValName)
+    val mangled = WrapValName.replace("+", "$plus")
+    val accessor = module.getClass.getMethod(mangled)
     val value = accessor.invoke(module)
     value.asInstanceOf[A]
 
@@ -408,7 +409,8 @@ object Eval:
    * not include the trailing `$`.
    */
   def getModule(moduleName: String, loader: ClassLoader): Any =
-    val clazz = Class.forName(moduleName + "$", true, loader)
+    val mangled = moduleName.replace("+", "$plus")
+    val clazz = Class.forName(mangled + "$", true, loader)
     clazz.getField("MODULE$").get(null)
 end Eval
 
