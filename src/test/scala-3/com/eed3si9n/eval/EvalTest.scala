@@ -6,98 +6,85 @@ import sbt.io.IO
 import verify.*
 
 object EvalTest extends BasicTestSuite:
-  var reporter: Reporter = null
+  var reporter: Reporter = null // scruff: ignore(no_null)
   def mkReporter(): Reporter =
     // reporter = EvalReporter.store
     reporter = EvalReporter.console
     reporter
 
-  def eval(backing: Path) = Eval(
-    backing,
-    mkReporter,
-  )
+  def eval(backing: Path) = Eval(backing, mkReporter)
 
-  def eval(nonCpOptions: Seq[String], backing: Path) = Eval(
-    nonCpOptions,
-    backing,
-    mkReporter,
-  )
+  def eval(nonCpOptions: Seq[String], backing: Path) = Eval(nonCpOptions, backing, mkReporter)
 
-  test("inferred integer - virtual dir + no reporter") {
+  test("inferred integer - virtual dir + no reporter"):
     val i = 0
     val eval = Eval()
     val result = eval.evalInfer(i.toString)
     assert(result.tpe == IntType)
     assert(value(result) == 0)
-  }
 
-  test("inferred integer - virtual dir") {
+  test("inferred integer - virtual dir"):
     val i = 1
     val eval = Eval(() => mkReporter())
     val result = eval.evalInfer(i.toString)
     assert(result.tpe == IntType)
     assert(value(result) == 1)
-  }
 
-  test("inferred integer") {
-    IO.withTemporaryDirectory { tempDir =>
+  test("inferred integer"):
+    IO.withTemporaryDirectory: tempDir =>
       val i = 2
       val result = eval(tempDir.toPath).evalInfer(i.toString)
       assert(result.tpe == IntType)
       assert(value(result) == 2)
-    }
-  }
 
-  test("explicit long") {
-    IO.withTemporaryDirectory { tempDir =>
+  test("explicit long"):
+    IO.withTemporaryDirectory: tempDir =>
       val i = 3
-      val result = eval(tempDir.toPath).eval(i.toString, tpeName = Some(LongType))
+      val result = eval(tempDir.toPath).eval(
+        i.toString,
+        tpeName = Some(LongType),
+      )
       assert(result.tpe == LongType)
       assert(value(result) == 3)
-    }
-  }
 
-  test("macro explicit type") {
+  test("macro explicit type"):
     val i = 3
     val result = Eval[ServerConfig]("""
       |com.eed3si9n.eval.ServerConfig(
       |  port = 8081,
       |)""".stripMargin)
     assert(result.port == 8081)
-  }
 
-  test("type mismatch") {
-    IO.withTemporaryDirectory { tempDir =>
+  test("type mismatch"):
+    IO.withTemporaryDirectory: tempDir =>
       val i = 4
-      intercept[EvalException] {
-        try {
-          eval(tempDir.toPath).eval(i.toString, tpeName = Some(BooleanType))
-        } catch {
+      intercept[EvalException]:
+        try
+          eval(tempDir.toPath).eval(
+            i.toString,
+            tpeName = Some(BooleanType),
+          )
+        catch
           case e: EvalException =>
             throw e
-        }
-      }
       hasErrors(1, "")
-    }
-  }
 
-  test("type mismatch2") {
-    IO.withTemporaryDirectory { tempDir =>
+  test("type mismatch2"):
+    IO.withTemporaryDirectory: tempDir =>
       val i = 5
-      intercept[EvalException] {
-        try {
-          eval(tempDir.toPath).eval(i.toString, tpeName = Some(StringType))
-        } catch {
+      intercept[EvalException]:
+        try
+          eval(tempDir.toPath).eval(
+            i.toString,
+            tpeName = Some(StringType),
+          )
+        catch
           case e: EvalException =>
             throw e
-        }
-      }
       hasErrors(1, "")
-    }
-  }
 
-  test("caching integer") {
-    IO.withTemporaryDirectory { tempDir =>
+  test("caching integer"):
+    IO.withTemporaryDirectory: tempDir =>
       val i = 2
       val result = eval(tempDir.toPath).evalInfer(i.toString)
       assert(result.tpe == IntType)
@@ -106,91 +93,71 @@ object EvalTest extends BasicTestSuite:
       val result2 = eval(tempDir.toPath).evalInfer(i.toString)
       assert(result2.tpe == IntType)
       assert(value(result2) == 2)
-    }
-  }
 
-  test("explicit import") {
-    IO.withTemporaryDirectory { tempDir =>
+  test("explicit import"):
+    IO.withTemporaryDirectory: tempDir =>
       val i = -6
       val imports = EvalImports(Seq("import math.abs"))
       val result = eval(tempDir.toPath).evalInfer(s"""abs($i)""", imports)
       assert(result.tpe == IntType)
       assert(value(result) == 6)
-    }
-  }
 
-  test("wildcard import") {
-    IO.withTemporaryDirectory { tempDir =>
+  test("wildcard import"):
+    IO.withTemporaryDirectory: tempDir =>
       val i = -7
       val imports = EvalImports(Seq("import math.*"))
       val result = eval(tempDir.toPath).evalInfer(s"""abs($i)""", imports)
       assert(result.tpe == IntType)
       assert(value(result) == 7)
-    }
-  }
 
-  test("options") {
-    IO.withTemporaryDirectory { tempDir =>
+  test("options"):
+    IO.withTemporaryDirectory: tempDir =>
       val i = 5
-      intercept[EvalException] {
+      intercept[EvalException]:
         // pure expression warning
         eval(Seq("-Werror"), tempDir.toPath)
           .evalInfer(s"{ 1; $i }")
-      }
       // hasErrors(1, "")
-    }
-  }
 
-  test("val test") {
-    IO.withTemporaryDirectory { tempDir =>
+  test("val test"):
+    IO.withTemporaryDirectory: tempDir =>
       val defs = (valTestContent, 1 to 7) :: Nil
-      val res =
-        eval(tempDir.toPath).evalDefinitions(
-          defs,
-          new EvalImports(Nil),
-          "<defs>",
-          "scala.Int" :: Nil
-        )
+      val res = eval(tempDir.toPath).evalDefinitions(
+        defs,
+        new EvalImports(Nil),
+        "<defs>",
+        "scala.Int" :: Nil,
+      )
       assert(res.valNames.toSet == valTestNames)
-    }
-  }
 
-  test("val position") {
-    IO.withTemporaryDirectory { tempDir =>
-      intercept[EvalException] {
+  test("val position"):
+    IO.withTemporaryDirectory: tempDir =>
+      intercept[EvalException]:
         val defs = (badValCode, 1 to 7) :: Nil
-        val res =
-          eval(tempDir.toPath).evalDefinitions(
-            defs,
-            new EvalImports(Seq("import math.*")),
-            "<defs>",
-            "scala.Int" :: Nil
-          )
-      }
-      hasErrors(5, "")
-    }
-  }
-
-  test("lazy val test") {
-    IO.withTemporaryDirectory { tempDir =>
-      val defs = (lazyValTestContent, 1 to 3) :: Nil
-      val res =
-        eval(tempDir.toPath).evalDefinitions(
+        val res = eval(tempDir.toPath).evalDefinitions(
           defs,
-          new EvalImports(Nil),
+          new EvalImports(Seq("import math.*")),
           "<defs>",
-          "scala.Int" :: Nil
+          "scala.Int" :: Nil,
         )
+      hasErrors(5, "")
+
+  test("lazy val test"):
+    IO.withTemporaryDirectory: tempDir =>
+      val defs = (lazyValTestContent, 1 to 3) :: Nil
+      val res = eval(tempDir.toPath).evalDefinitions(
+        defs,
+        new EvalImports(Nil),
+        "<defs>",
+        "scala.Int" :: Nil,
+      )
       assert(res.valNames.toSet == Set("x"))
       assert(res.values(getClass.getClassLoader) == Seq(7))
-    }
-  }
 
-  private def hasErrors(line: Int, src: String) = {
+  private def hasErrors(line: Int, src: String) =
     val errors = reporter.allErrors
     assert(errors.nonEmpty)
     assert(errors.head.pos.line == line - 1)
-  }
 
   lazy val valTestNames = Set("x", "a")
   lazy val valTestContent = """

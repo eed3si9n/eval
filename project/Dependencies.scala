@@ -1,4 +1,6 @@
-import sbt._
+import sbt.*
+
+// format: off
 
 object Dependencies {
   val sbtV = "1.9.9"

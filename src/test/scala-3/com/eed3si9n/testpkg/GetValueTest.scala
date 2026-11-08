@@ -1,10 +1,10 @@
 package testpkg
 
-import verify.*
 import com.eed3si9n.eval.Eval
+import verify.*
 
 object GetValueTest extends BasicTestSuite:
-  test("getValue can be applied if it's a function") {
+  test("getValue can be applied if it's a function"):
     val code =
       """
         | def test(): Unit =
@@ -17,8 +17,7 @@ object GetValueTest extends BasicTestSuite:
     val eval = Eval()
     val result = eval
       .evalInfer(code)
-      .getValue(this.getClass.getClassLoader).asInstanceOf[() => Unit]
+      .getValue(this.getClass.getClassLoader)
+      .asInstanceOf[() => Unit]
     val x = result.apply()
     assert(x == (()))
-  }
-end GetValueTest
