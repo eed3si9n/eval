@@ -2,19 +2,19 @@ package com.eed3si9n.eval
 
 import dotty.tools.dotc.ast
 import dotty.tools.dotc.ast.{ tpd, untpd }
-import dotty.tools.dotc.CompilationUnit
 import dotty.tools.dotc.config.ScalaSettings
 import dotty.tools.dotc.core.Contexts.{ atPhase, Context }
 import dotty.tools.dotc.core.Decorators.toTermName
 import dotty.tools.dotc.core.{ Flags, Names, Phases, Symbols, Types }
-import dotty.tools.dotc.Driver
 import dotty.tools.dotc.core.Periods.*
 import dotty.tools.dotc.parsing.Parsers.Parser
 import dotty.tools.dotc.reporting.Reporter
-import dotty.tools.dotc.Run
 import dotty.tools.dotc.util.SourceFile
-import dotty.tools.io.{ PlainDirectory, Directory, VirtualDirectory, VirtualFile }
+import dotty.tools.dotc.CompilationUnit
+import dotty.tools.dotc.Driver
+import dotty.tools.dotc.Run
 import dotty.tools.io.AbstractFileClassLoader
+import dotty.tools.io.{ PlainDirectory, Directory, VirtualDirectory, VirtualFile }
 import java.net.URLClassLoader
 import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Path, Paths, StandardOpenOption }
@@ -23,35 +23,32 @@ import scala.collection.immutable.ArraySeq.unsafeWrapArray
 import scala.jdk.CollectionConverters.*
 import scala.quoted.*
 
-/**
- * - nonCpOptions - non-classpath options
- * - classpath - classpath used for evaluation
- * - backingDir - directory to save `*.class` files
- * - mkReporter - an optional factory method to create a reporter
+/** - nonCpOptions - non-classpath options
+ *  - classpath - classpath used for evaluation
+ *  - backingDir - directory to save `*.class` files
+ *  - mkReporter - an optional factory method to create a reporter
  */
 class Eval(
     nonCpOptions: Seq[String],
     classpath: Seq[Path],
     backingDir: Option[Path],
-    mkReporter: Option[() => Reporter]
+    mkReporter: Option[() => Reporter],
 ):
   import Eval.*
 
-  backingDir.foreach { dir =>
+  backingDir.foreach: dir =>
     Files.createDirectories(dir)
-  }
   private val classpathString = classpath.map(_.toString).mkString(":")
-  private val outputDir =
-    backingDir match
-      case Some(dir) => PlainDirectory(Directory(dir.toString))
-      case None      => VirtualDirectory("output")
+  private val outputDir = backingDir match
+    case Some(dir) => PlainDirectory(Directory(dir.toString))
+    case None      => VirtualDirectory("output")
   private lazy val driver: EvalDriver = new EvalDriver
   private lazy val reporter = mkReporter match
     case Some(fn) => fn()
     case None     => EvalReporter.store
 
   final class EvalDriver extends Driver:
-    import dotty.tools.dotc.config.Settings.Setting._
+    import dotty.tools.dotc.config.Settings.Setting.*
     val compileCtx0 = initCtx.fresh
     val options = nonCpOptions ++ Seq("-classpath", classpathString, "dummy.scala")
     val compileCtx1 = setup(options.toArray, compileCtx0) match
@@ -59,14 +56,10 @@ class Eval(
       case _              => sys.error(s"initialization failed for $options")
     val compileCtx2 = compileCtx1.fresh
       .setPeriod(Period(2, 1)) // RunId 2 is the actually the first one in the compiler
-      .setSetting(
-        compileCtx1.settings.outputDir,
-        outputDir
-      )
+      .setSetting(compileCtx1.settings.outputDir, outputDir)
       .setReporter(reporter)
     val compileCtx = compileCtx2
     val compiler = newCompiler(using compileCtx)
-  end EvalDriver
 
   private inline def srcName = "<setting>"
 
@@ -84,7 +77,7 @@ class Eval(
       imports: EvalImports,
       tpeName: Option[String],
       srcName: String,
-      line: Int
+      line: Int,
   ): EvalResult =
     val ev = new EvalType[String]:
       override def makeSource(moduleName: String): SourceFile =
@@ -104,26 +97,29 @@ class Eval(
         val startLine = header.linesIterator.toList.size
         EvalSourceFile(srcName, startLine, contents)
 
-      override def extract(run: Run, unit: CompilationUnit)(using ctx: Context): String =
-        atPhase(Phases.typerPhase.next):
-          (new TypeExtractor).getType(unit.tpdTree)
+      override def extract(run: Run, unit: CompilationUnit)(using ctx: Context): String = atPhase(
+        Phases.typerPhase.next
+      ):
+        (new TypeExtractor).getType(unit.tpdTree)
 
       override def read(file: Path): String =
         String(Files.readAllBytes(file), StandardCharsets.UTF_8)
 
-      override def write(value: String, file: Path): Unit =
-        Files.write(
-          file,
-          value.getBytes(StandardCharsets.UTF_8),
-          StandardOpenOption.CREATE,
-          StandardOpenOption.TRUNCATE_EXISTING
-        )
+      override def write(value: String, file: Path): Unit = Files.write(
+        file,
+        value.getBytes(StandardCharsets.UTF_8),
+        StandardOpenOption.CREATE,
+        StandardOpenOption.TRUNCATE_EXISTING,
+      )
 
       override def extraHash: String = ""
 
     val inter = evalCommon[String](expression :: Nil, imports, tpeName, ev)
     val valueFn = (cl: ClassLoader) => getValue[Any](inter.enclosingModule, inter.loader(cl))
-    EvalResult(tpe = inter.extra, getValue = valueFn)
+    EvalResult(
+      tpe = inter.extra,
+      getValue = valueFn,
+    )
   end eval
 
   def evalDefinitions(
@@ -131,8 +127,7 @@ class Eval(
       imports: EvalImports,
       srcName: String,
       valTypes: Seq[String],
-  ): EvalDefinitions =
-    evalDefinitions(definitions, imports, srcName, valTypes, "")
+  ): EvalDefinitions = evalDefinitions(definitions, imports, srcName, valTypes, "")
 
   def evalDefinitions(
       definitions: Seq[(String, scala.Range)],
@@ -165,19 +160,27 @@ class Eval(
       override def read(file: Path): Seq[String] =
         new String(Files.readAllBytes(file), StandardCharsets.UTF_8).linesIterator.toList
 
-      override def write(value: Seq[String], file: Path): Unit =
-        Files.write(
-          file,
-          value.mkString("\n").getBytes(StandardCharsets.UTF_8),
-          StandardOpenOption.CREATE,
-          StandardOpenOption.TRUNCATE_EXISTING
-        )
+      override def write(value: Seq[String], file: Path): Unit = Files.write(
+        file,
+        value.mkString("\n").getBytes(StandardCharsets.UTF_8),
+        StandardOpenOption.CREATE,
+        StandardOpenOption.TRUNCATE_EXISTING,
+      )
 
       override def extraHash: String = extraHash0
 
-    val inter = evalCommon[Seq[String]](definitions.map(_._1), imports, tpeName = Some(""), ev)
-    EvalDefinitions(inter.loader, inter.generated, inter.enclosingModule, inter.extra.reverse.distinct)
-
+    val inter = evalCommon[Seq[String]](
+      definitions.map(_._1),
+      imports,
+      tpeName = Some(""),
+      ev,
+    )
+    EvalDefinitions(
+      inter.loader,
+      inter.generated,
+      inter.enclosingModule,
+      inter.extra.reverse.distinct,
+    )
   end evalDefinitions
 
   private def evalCommon[A](
@@ -189,12 +192,10 @@ class Eval(
     import Eval.*
     // This is a hot path.
     val digester = MessageDigest.getInstance("SHA")
-    content.foreach { c =>
+    content.foreach: c =>
       digester.update(bytes(c))
-    }
-    tpeName.foreach { tpe =>
+    tpeName.foreach: tpe =>
       digester.update(bytes(tpe))
-    }
     digester.update(bytes(ev.extraHash))
     val d = digester.digest()
     val hash = Hex.toHex(d)
@@ -213,10 +214,10 @@ class Eval(
       generated = generatedFiles,
       enclosingModule = moduleName,
     )
+  end evalCommon
 
   // location of the cached type or definition information
-  private def cacheFile(base: Path, moduleName: String): Path =
-    base.resolve(moduleName + ".cache")
+  private def cacheFile(base: Path, moduleName: String): Path = base.resolve(moduleName + ".cache")
 
   private def compileAndLoad[A](
       ev: EvalType[A],
@@ -230,9 +231,8 @@ class Eval(
     checkError("an error in expression")
     val unit = run.units.head
     val extra: A = ev.extract(run, unit)
-    backingDir.foreach { backing =>
+    backingDir.foreach: backing =>
       ev.write(extra, cacheFile(backing, moduleName))
-    }
     val loader = (parent: ClassLoader) => AbstractFileClassLoader(outputDir, parent)
     (extra, loader)
 
@@ -277,23 +277,16 @@ object Eval:
   def apply(mkReporter: () => Reporter): Eval =
     new Eval(Nil, currentClasspath, None, Some(mkReporter))
 
-  def apply(
-      backingDir: Path,
-      mkReporter: () => Reporter,
-  ): Eval =
+  def apply(backingDir: Path, mkReporter: () => Reporter): Eval =
     new Eval(Nil, currentClasspath, Some(backingDir), Some(mkReporter))
 
-  def apply(
-      nonCpOptions: Seq[String],
-      backingDir: Path,
-      mkReporter: () => Reporter,
-  ): Eval =
+  def apply(nonCpOptions: Seq[String], backingDir: Path, mkReporter: () => Reporter): Eval =
     new Eval(nonCpOptions, currentClasspath, Some(backingDir), Some(mkReporter))
 
   inline def apply[A](expression: String): A = ${ evalImpl[A]('{ expression }) }
   private def thisClassLoader = this.getClass.getClassLoader
   def evalImpl[A: Type](expression: Expr[String])(using qctx: Quotes): Expr[A] =
-    import quotes.reflect._
+    import quotes.reflect.*
     val sym = TypeRepr.of[A].typeSymbol
     val fullName = Expr(sym.fullName)
     '{
@@ -301,9 +294,7 @@ object Eval:
     }
 
   def currentClasspath: Seq[Path] =
-    val urls = sys.props.get("java.class.path")
-      .map(_.split(":"))
-      .getOrElse(Array.empty[String])
+    val urls = sys.props.get("java.class.path").map(_.split(":")).getOrElse(Array.empty[String])
     unsafeWrapArray(urls).map(Paths.get(_))
 
   def bytes(s: String): Array[Byte] = s.getBytes("UTF-8")
@@ -319,7 +310,6 @@ object Eval:
       ):
     override def lineToOffset(line: Int): Int = super.lineToOffset((line + startLine) max 0)
     override def offsetToLine(offset: Int): Int = super.offsetToLine(offset) - startLine
-  end EvalSourceFile
 
   trait EvalType[A]:
     def makeSource(moduleName: String): SourceFile
@@ -330,15 +320,13 @@ object Eval:
     /** Deserializes the extra information for unchanged inputs from a cache file. */
     def read(file: Path): A
 
-    /**
-     * Serializes the extra information to a cache file, where it can be `read` back if inputs
-     * haven't changed.
+    /** Serializes the extra information to a cache file, where it can be `read` back if inputs
+     *  haven't changed.
      */
     def write(value: A, file: Path): Unit
 
     /** Extra information to include in the hash'd object name to help avoid collisions. */
     def extraHash: String
-  end EvalType
 
   class TypeExtractor extends tpd.TreeTraverser:
     private var result = ""
@@ -354,11 +342,9 @@ object Eval:
         case t: tpd.PackageDef => this((), t.stats)
         case t: tpd.TypeDef    => this((), t.rhs)
         case _                 => ()
-  end TypeExtractor
 
-  /**
-   * Tree traverser that obtains the names of vals in a top-level module whose type is a subtype of
-   * one of `types`.
+  /** Tree traverser that obtains the names of vals in a top-level module whose type is a subtype of
+   *  one of `types`.
    */
   class ValExtractor(tpes: Set[String]) extends tpd.TreeTraverser:
     private var vals = List[String]()
@@ -369,9 +355,8 @@ object Eval:
       vals
 
     def isAcceptableType(tpe: Types.Type)(using ctx: Context): Boolean =
-      tpe.baseClasses.exists { sym =>
+      tpe.baseClasses.exists: sym =>
         tpes.contains(sym.fullName.toString)
-      }
 
     def isTopLevelModule(sym: Symbols.Symbol)(using ctx: Context): Boolean =
       (sym `is` Flags.Module) && (sym.owner `is` Flags.ModuleClass)
@@ -385,17 +370,15 @@ object Eval:
           val str = name.mangledString
           val methodName = str.take(str.indexOf("$"))
           val m = tree.symbol.owner.requiredMethod(methodName)
-          if isAcceptableType(m.info) then
-            vals ::= methodName
+          if isAcceptableType(m.info) then vals ::= methodName
         case t: tpd.Template   => this((), t.body)
         case t: tpd.PackageDef => this((), t.stats)
         case t: tpd.TypeDef    => this((), t.rhs)
         case _                 => ()
   end ValExtractor
 
-  /**
-   * Gets the value of the expression wrapped in module `objectName`, which is accessible via
-   * `loader`. The module name should not include the trailing `$`.
+  /** Gets the value of the expression wrapped in module `objectName`, which is accessible via
+   *  `loader`. The module name should not include the trailing `$`.
    */
   def getValue[A](objectName: String, loader: ClassLoader): A =
     val module = getModule(objectName, loader)
@@ -404,9 +387,8 @@ object Eval:
     val value = accessor.invoke(module)
     value.asInstanceOf[A]
 
-  /**
-   * Gets the top-level module `moduleName` from the provided class `loader`. The module name should
-   * not include the trailing `$`.
+  /** Gets the top-level module `moduleName` from the provided class `loader`. The module name should
+   *  not include the trailing `$`.
    */
   def getModule(moduleName: String, loader: ClassLoader): Any =
     val mangled = moduleName.replace("+", "$plus")
@@ -414,32 +396,26 @@ object Eval:
     clazz.getField("MODULE$").get(null) // scruff: ignore(no_null)
 end Eval
 
-final class EvalResult(
-    val tpe: String,
-    val getValue: ClassLoader => Any,
-)
+final class EvalResult(val tpe: String, val getValue: ClassLoader => Any)
 
-/**
- * The result of evaluating a group of Scala definitions. The definitions are wrapped in an
- * auto-generated, top-level module named `enclosingModule`. `generated` contains the compiled
- * classes and cache files related to the definitions. A new class loader containing the module may
- * be obtained from `loader` by passing the parent class loader providing the classes from the
- * classpath that the definitions were compiled against. The list of vals with the requested types
- * is `valNames`. The values for these may be obtained by providing the parent class loader to
- * `values` as is done with `loader`.
+/** The result of evaluating a group of Scala definitions. The definitions are wrapped in an
+ *  auto-generated, top-level module named `enclosingModule`. `generated` contains the compiled
+ *  classes and cache files related to the definitions. A new class loader containing the module may
+ *  be obtained from `loader` by passing the parent class loader providing the classes from the
+ *  classpath that the definitions were compiled against. The list of vals with the requested types
+ *  is `valNames`. The values for these may be obtained by providing the parent class loader to
+ *  `values` as is done with `loader`.
  */
 final class EvalDefinitions(
     val loader: ClassLoader => ClassLoader,
     val generated: Seq[Path],
     val enclosingModule: String,
-    val valNames: Seq[String]
+    val valNames: Seq[String],
 ):
-  def values(parent: ClassLoader): Seq[Any] = {
+  def values(parent: ClassLoader): Seq[Any] =
     val module = Eval.getModule(enclosingModule, loader(parent))
     for n <- valNames
     yield module.getClass.getMethod(n).invoke(module)
-  }
-end EvalDefinitions
 
 final class EvalException(msg: String) extends RuntimeException(msg)
 
