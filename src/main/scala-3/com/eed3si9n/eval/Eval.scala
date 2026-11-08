@@ -411,7 +411,7 @@ object Eval:
   def getModule(moduleName: String, loader: ClassLoader): Any =
     val mangled = moduleName.replace("+", "$plus")
     val clazz = Class.forName(mangled + "$", true, loader)
-    clazz.getField("MODULE$").get(null)
+    clazz.getField("MODULE$").get(null) // scruff: ignore(no_null)
 end Eval
 
 final class EvalResult(

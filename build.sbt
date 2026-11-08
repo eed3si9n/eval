@@ -1,4 +1,6 @@
-import Dependencies._
+import Dependencies.*
+
+// format: off
 
 lazy val scalaVersions = Seq(
   // "3.6.4",
@@ -45,3 +47,5 @@ ThisBuild / publishTo := {
   if (version.value.endsWith("-SNAPSHOT")) Some("central-snapshots" at centralSnapshots)
   else localStaging.value
 }
+ThisBuild / scruffFmtOnCompile := true
+ThisBuild / scruffCheckOnCompile := true

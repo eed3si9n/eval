@@ -6,7 +6,7 @@ import sbt.io.IO
 import verify.*
 
 object EvalTest extends BasicTestSuite:
-  var reporter: Reporter = null
+  var reporter: Reporter = null // scruff: ignore(no_null)
   def mkReporter(): Reporter =
     // reporter = EvalReporter.store
     reporter = EvalReporter.console
